@@ -1,12 +1,15 @@
-#include <api.h>
-#include <cofb.h>
-#include <crypto_aead.h>
-#include <crypto_hash.h>
-#include <endian.h>
-#include <giftb128.h>
-#include <isi.h>
-#include <key_schedule.h>
-#include <cstdio>
+extern "C"{
+  #include "api.h"
+#include "cofb.h"
+#include "crypto_aead.h"
+#include "endian.h"
+#include "giftb128.h"
+#include "isi.h"
+#include "key_schedule.h"
+#include "PubSubClient.h"
+}
+
+
 
 /*
  Basic ESP8266 MQTT example
@@ -29,7 +32,6 @@
 */
 
 #include <WiFi.h>
-#include <TBPubSubClient.h>
 #define BUILTIN_LED 2
 
 // Update these with values suitable for your network.
@@ -153,7 +155,7 @@ void loop() {
     }
 
     padMessage(message, input_length);
-    //ret_var = generate_test_vectors(key, nonce, message, ad, 32, 32);
+    // ret_var = generate_test_vectors(key, nonce, message, ad, 32, 32);
     // snprintf (msg, MSG_BUFFER_SIZE, );
     // Serial.print("Publish message: ");
     // Serial.println(message);

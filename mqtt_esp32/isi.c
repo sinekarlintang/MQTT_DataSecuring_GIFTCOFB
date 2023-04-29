@@ -1,6 +1,7 @@
 #include "isi.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "api.h"
 #include "crypto_aead.h"
 
@@ -91,8 +92,8 @@ void init_buffer(unsigned char *buffer, unsigned long long numbytes)
     buffer[i] = (unsigned char)i;
 }
 
-// int main()
-// {
+int main()
+{
 //   int ret_val = KAT_SUCCESS;
 
 //   char input_string[MAX_MESSAGE_LENGTH * 2 + 1];
@@ -128,4 +129,4 @@ void init_buffer(unsigned char *buffer, unsigned long long numbytes)
 //   printf("Success!\n");
 
 //   return 0;
-// }
+}
