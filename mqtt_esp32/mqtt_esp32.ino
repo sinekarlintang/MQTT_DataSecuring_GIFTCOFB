@@ -1,5 +1,16 @@
+#include <WiFi.h>
+#include <WiFiAP.h>
+#include <WiFiClient.h>
+#include <WiFiGeneric.h>
+#include <WiFiMulti.h>
+#include <WiFiScan.h>
+#include <WiFiServer.h>
+#include <WiFiSTA.h>
+#include <WiFiType.h>
+#include <WiFiUdp.h>
+
 extern "C"{
-  #include "api.h"
+#include "api.h"
 #include "cofb.h"
 #include "crypto_aead.h"
 #include "endian.h"
@@ -8,9 +19,6 @@ extern "C"{
 #include "key_schedule.h"
 #include "PubSubClient.h"
 }
-
-
-
 /*
  Basic ESP8266 MQTT example
  This sketch demonstrates the capabilities of the pubsub library in combination
@@ -31,13 +39,15 @@ extern "C"{
   - Select your ESP8266 in "Tools -> Board"
 */
 
-#include <WiFi.h>
 #define BUILTIN_LED 2
+unsigned char ad[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E};
+unsigned char key[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
+unsigned char nonce[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
 
 // Update these with values suitable for your network.
 
-const char* ssid = "Adriel";
-const char* password = "123456789";
+const char* ssid = "The Chosen One";
+const char* password = "sekarsinekar";
 const char* mqtt_server = "broker.mqtt-dashboard.com";
 float besar = 10.4;
 unsigned char message[MAX_MESSAGE_LENGTH];
@@ -46,15 +56,17 @@ int input_length;
 int ret_var;
 unsigned char ct[MAX_MESSAGE_LENGTH + CRYPTO_ABYTES];
 unsigned char msg2[MAX_MESSAGE_LENGTH];
+char msg1[MAX_MESSAGE_LENGTH];
 unsigned long long  clen, mlen2;
 int func_ret, ret_val = KAT_SUCCESS;
 char input_string[MAX_MESSAGE_LENGTH * 2 + 1];
+
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE	(50)
-char msg[MSG_BUFFER_SIZE];
+unsigned char msg[MSG_BUFFER_SIZE] = "SEKAR";
 int value = 0;
 
 void setup_wifi() {
@@ -126,7 +138,6 @@ void reconnect() {
 }
 
 void setup() {
-  pinMode(BUILTIN_LED, OUTPUT);     // Initialize the BUILTIN_LED pin as an output
   Serial.begin(115200);
   setup_wifi();
   client.setServer(mqtt_server, 1883);
@@ -134,31 +145,40 @@ void setup() {
 }
 
 void loop() {
-
+  char encrypted[MSG_BUFFER_SIZE];
+char decrypted[MSG_BUFFER_SIZE];
   if (!client.connected()) {
     reconnect();
   }
   client.loop();
 
-  unsigned long now = millis();
-  if (now - lastMsg > 2000) {
-    lastMsg = now;
-    ++value;
-    int input_length = snprintf(input_string, MAX_MESSAGE_LENGTH, "%.2f", besar);
-    if (input_length > MAX_MESSAGE_LENGTH) {
-      //printf("Message too long, truncating to 32 bytes\n");
-      input_length = MAX_MESSAGE_LENGTH;
-    }
-   
-    for (i = 0; i < input_length; i++) {
-    message[i] = (unsigned char) input_string[i];
-    }
+    unsigned long now = millis();
+    if (now - lastMsg > 2000) {
+      lastMsg = now;
+      ++value;
+      for (unsigned long long mlen = 0; (mlen <= MAX_MESSAGE_LENGTH) && (ret_val == KAT_SUCCESS); mlen++) {
 
-    padMessage(message, input_length);
-    // ret_var = generate_test_vectors(key, nonce, message, ad, 32, 32);
-    // snprintf (msg, MSG_BUFFER_SIZE, );
-    // Serial.print("Publish message: ");
-    // Serial.println(message);
-    // client.publish("1sampai10", msg);
-  }
+        for (unsigned long long adlen = 0; adlen <= MAX_ASSOCIATED_DATA_LENGTH; adlen++) {
+
+          if ((func_ret = crypto_aead_encrypt(ct, &clen, msg, mlen, ad, adlen, NULL, nonce, key)) != 0) {
+            ret_val = KAT_CRYPTO_FAILURE;
+            break;
+          }
+          if ((func_ret = crypto_aead_decrypt(msg2, &mlen2, NULL, ct, clen, ad, adlen, nonce, key)) != 0) {
+            ret_val = KAT_CRYPTO_FAILURE;
+            break;
+			    }
+        }
+      }
+
+      for(int i=0; i<MSG_BUFFER_SIZE; i++)
+      {
+        snprintf (msg1, MSG_BUFFER_SIZE, "%02X", ct[i]);
+        Serial.print("Publish message: ");
+        Serial.print(msg1);
+        client.publish("testing", msg1);
+      }
+      client.publish("testing", "\n");
+    }
+  
 }
