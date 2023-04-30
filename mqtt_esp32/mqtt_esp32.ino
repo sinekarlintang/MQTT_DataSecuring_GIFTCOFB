@@ -56,7 +56,7 @@ int input_length;
 int ret_var;
 unsigned char ct[MAX_MESSAGE_LENGTH + CRYPTO_ABYTES];
 unsigned char msg2[MAX_MESSAGE_LENGTH];
-char msg1[MAX_MESSAGE_LENGTH];
+char msg1[96];
 unsigned long long  clen, mlen2;
 int func_ret, ret_val = KAT_SUCCESS;
 char input_string[MAX_MESSAGE_LENGTH * 2 + 1];
@@ -66,7 +66,7 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE	(50)
-unsigned char msg[MSG_BUFFER_SIZE] = "SEKAR";
+unsigned char msg[MSG_BUFFER_SIZE] = "10.4";
 int value = 0;
 
 void setup_wifi() {
@@ -124,7 +124,7 @@ void reconnect() {
     if (client.connect(clientId.c_str())) {
       Serial.println("connected");
       // Once connected, publish an announcement...
-      client.publish("1sampai10", "hello world");
+      //client.publish("testing", "hello world");
       // ... and resubscribe
       client.subscribe("inTopic");
     } else {
@@ -145,8 +145,8 @@ void setup() {
 }
 
 void loop() {
-  char encrypted[MSG_BUFFER_SIZE];
-char decrypted[MSG_BUFFER_SIZE];
+  char encrypted[96];
+char decrypted[32];
   if (!client.connected()) {
     reconnect();
   }
@@ -170,15 +170,16 @@ char decrypted[MSG_BUFFER_SIZE];
 			    }
         }
       }
-
-      for(int i=0; i<MSG_BUFFER_SIZE; i++)
-      {
-        snprintf (msg1, MSG_BUFFER_SIZE, "%02X", ct[i]);
+      for (int i = 0; i < 32; i++) {
+        decrypted[i] = (char) msg2[i];
+      }
+      for (int i = 0; i < 48; i++) {
+        sprintf(&encrypted[i*2], "%02X", ct[i]);
+      }
+      snprintf (msg1, 160, "%s %s", encrypted, decrypted);
         Serial.print("Publish message: ");
         Serial.print(msg1);
         client.publish("testing", msg1);
-      }
-      client.publish("testing", "\n");
     }
   
 }
