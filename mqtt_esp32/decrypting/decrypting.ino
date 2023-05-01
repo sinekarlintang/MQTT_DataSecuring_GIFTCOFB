@@ -69,16 +69,22 @@ void setup_wifi() {
 
 void callback(char* topic, byte* payload, unsigned int length) {
   char decrypted[32];
+  char received[length];
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
-  Serial.print((int)length);
+  //Serial.print((int)length);
   for (int i = 0; i < length; i++) {
-    ct[i] = (char)payload[i];
-    Serial.print((char)ct[i]);
+    received[i] = (char)payload[i];
+    Serial.print((char)payload[i]);
   }
   Serial.print("\n");
-if ((func_ret = crypto_aead_decrypt(msg2, &mlen2, NULL, ct, 96, ad, 32, nonce, key)) != 0) {
+  for (int i = 0; i < length; i += 2) {
+    unsigned int hex_value;
+    sscanf(&received[i], "%2x", &hex_value);
+    ct[i/2] = (unsigned char)hex_value;
+}
+if ((func_ret = crypto_aead_decrypt(msg2, &mlen2, NULL, ct, 48, ad, 32, nonce, key)) != 0) {
           
             Serial.print("test");
             ret_val = KAT_CRYPTO_FAILURE;
@@ -87,7 +93,7 @@ if ((func_ret = crypto_aead_decrypt(msg2, &mlen2, NULL, ct, 96, ad, 32, nonce, k
         Serial.print((char)msg2[i]);
         decrypted[i] = (char) msg2[i];
       }
-  Serial.print(decrypted);
+  //Serial.print(decrypted);
   Serial.println();
 }
 

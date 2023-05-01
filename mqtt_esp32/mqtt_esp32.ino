@@ -42,6 +42,12 @@ unsigned char ad[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x
 unsigned char key[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
 unsigned char nonce[32] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
 
+const int steerPin = 34;
+const int throttlePin = 35;
+const float MAX_VOLTAGE = 3.3;
+const float MAX_THROTTLE = 2047.0;
+
+
 const char* ssid = "Adriel";
 const char* password = "123456789";
 const char* mqtt_server = "broker.mqtt-dashboard.com";
@@ -61,7 +67,7 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE	(50)
-unsigned char msg[MSG_BUFFER_SIZE] = "10.4";
+unsigned char msg[MSG_BUFFER_SIZE];
 int value = 0;
 
 void setup_wifi() {
@@ -120,18 +126,57 @@ void setup() {
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
+    // Konfigurasi ADC
+  analogReadResolution(12);
+  analogSetAttenuation(ADC_11db);
 }
 
 void loop() {
   char encrypted[96];
   char decrypted[32];
+  char message[14];
+
+  // Membaca nilai potensiometer untuk steering
+  int steerValue = analogRead(steerPin);
+  float steerVoltage = steerValue * (MAX_VOLTAGE / 4095.0);
+
+  // Menghitung sudut steering angle
+  float maxSteerValue = (MAX_VOLTAGE / 2.0);
+  float steerAngle = 0;
+  
+  if (steerVoltage <= maxSteerValue) {
+    steerAngle = ((steerVoltage - maxSteerValue) * (90.0 / maxSteerValue));
+  } else {
+    steerAngle = ((steerVoltage - maxSteerValue) * (90.0 / maxSteerValue));
+  }
+
+  // Membaca nilai potensiometer untuk throttle
+  int throttleValue = analogRead(throttlePin);
+
+  // Memastikan bahwa nilai throttle tidak melebihi nilai maksimum
+  if (throttleValue > MAX_THROTTLE) {
+    throttleValue = MAX_THROTTLE;
+  }
+
+  // Menghitung posisi throttle
+  float throttlePosition = 0;
+  if (throttleValue > MAX_THROTTLE / 2) {
+    throttlePosition = ((throttleValue - MAX_THROTTLE / 2) * (100.0 / (MAX_THROTTLE / 2)));
+  }
+  sprintf(message,"%.3f,%.5f",steerAngle,throttlePosition);
+  Serial.print("Steering Angle: ");
+  Serial.print(steerAngle);
+  Serial.println(" deegrees");
+  Serial.println(throttlePosition);
+  memcpy(msg,(unsigned char*)message, sizeof(message));
+  
   if (!client.connected()) {
     reconnect();
   }
   client.loop();
 
     unsigned long now = millis();
-    if (now - lastMsg > 2000) {
+    if (now - lastMsg > 1000) {
       lastMsg = now;
       ++value;
       for (unsigned long long mlen = 0; (mlen <= MAX_MESSAGE_LENGTH) && (ret_val == KAT_SUCCESS); mlen++) {
@@ -142,21 +187,14 @@ void loop() {
             ret_val = KAT_CRYPTO_FAILURE;
             break;
           }
-          if ((func_ret = crypto_aead_decrypt(msg2, &mlen2, NULL, ct, clen, ad, adlen, nonce, key)) != 0) {
-            ret_val = KAT_CRYPTO_FAILURE;
-            break;
-			    }
         }
-      }
-      for (int i = 0; i < 32; i++) {
-        decrypted[i] = (char) msg2[i];
       }
       for (int i = 0; i < 48; i++) {
         sprintf(&encrypted[i*2], "%02X", ct[i]);
       }
       snprintf (msg1, 100, "%s", encrypted);
-      //Serial.print("Publish message: ");
-      //Serial.print(msg1);
+      Serial.print("Publish message: ");
+      Serial.print(msg1);
       client.publish("testing", msg1);
     }
   
