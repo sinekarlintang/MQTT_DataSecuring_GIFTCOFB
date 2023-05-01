@@ -2,6 +2,7 @@
 const int steerPin = 34;
 const int throttlePin = 35;
 const float MAX_VOLTAGE = 3.3;
+const float MAX_THROTTLE = 2047.0;
 
 void setup() {
   Serial.begin(9600);
@@ -30,12 +31,16 @@ void loop() {
 
   // Membaca nilai potensiometer untuk throttle
   int throttleValue = analogRead(throttlePin);
-  float throttleVoltage = throttleValue * (MAX_VOLTAGE / 4095.0);
-  
-  // Memastikan bahwa nilai throttle tidak melebihi 100%
-  float throttlePosition = (throttleVoltage * 100.0) / MAX_VOLTAGE;
-  if (throttlePosition > 100.0) {
-    throttlePosition = 100.0;
+
+  // Memastikan bahwa nilai throttle tidak melebihi nilai maksimum
+  if (throttleValue > MAX_THROTTLE) {
+    throttleValue = MAX_THROTTLE;
+  }
+
+  // Menghitung posisi throttle
+  float throttlePosition = 0;
+  if (throttleValue > MAX_THROTTLE / 2) {
+    throttlePosition = ((throttleValue - MAX_THROTTLE / 2) * (100.0 / (MAX_THROTTLE / 2)));
   }
 
   // Menampilkan nilai sudut steering dan posisi throttle pada Serial Monitor
