@@ -68,33 +68,33 @@ void setup_wifi() {
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
+
   char decrypted[32];
   char received[length];
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
-  //Serial.print((int)length);
-  for (int i = 0; i < length; i++) {
-    received[i] = (char)payload[i];
-    Serial.print((char)payload[i]);
-  }
-  Serial.print("\n");
-  for (int i = 0; i < length; i += 2) {
-    unsigned int hex_value;
-    sscanf(&received[i], "%2x", &hex_value);
-    ct[i/2] = (unsigned char)hex_value;
-}
-if ((func_ret = crypto_aead_decrypt(msg2, &mlen2, NULL, ct, 48, ad, 32, nonce, key)) != 0) {
-          
-            Serial.print("test");
-            ret_val = KAT_CRYPTO_FAILURE;
-          }
-   for (int i = 0; i < 32; i++) {
-        Serial.print((char)msg2[i]);
+  
+    for (int i = 0; i < length; i++) {
+      received[i] = (char)payload[i];
+      Serial.print((char)payload[i]);
+    }
+    Serial.print("\n");
+    for (int i = 0; i < length; i += 2) {
+      unsigned int hex_value;
+      sscanf(&received[i], "%2x", &hex_value);
+      ct[i/2] = (unsigned char)hex_value;
+    }
+    if ((func_ret = crypto_aead_decrypt(msg2, &mlen2, NULL, ct, 48, ad, 32, nonce, key)) != 0) {
+      ret_val = KAT_CRYPTO_FAILURE;
+    }
+    for (int i = 0; i < 32; i++) {
+        //Serial.print((char)msg2[i]);
         decrypted[i] = (char) msg2[i];
-      }
-  //Serial.print(decrypted);
-  Serial.println();
+    }
+    print_to_csv(decrypted);
+    Serial.print(decrypted);
+    Serial.println();
 }
 
 void reconnect() {
@@ -121,11 +121,18 @@ void reconnect() {
 }
 
 void setup() {
+     unsigned long startTime = millis();
   Serial.begin(115200);
   setup_wifi();
   
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
+      unsigned long executionTime = millis() - startTime;
+    
+    // Print the execution time
+    Serial.print("Program execution time: ");
+    Serial.print(executionTime);
+    Serial.println(" milliseconds");
 }
 
 void loop() {
@@ -134,4 +141,10 @@ void loop() {
     reconnect();
   }
   client.loop();
+  
+uint32_t freeHeapBytes = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
+uint32_t totalHeapBytes = heap_caps_get_total_size(MALLOC_CAP_DEFAULT);
+float percentageHeapFree = freeHeapBytes * 100.0f / (float)totalHeapBytes;
+// Print to serial
+Serial.printf("[Memory] %.1f%% free - %d of %d bytes free\n", percentageHeapFree, freeHeapBytes, totalHeapBytes);
 }

@@ -71,6 +71,11 @@ void init_buffer(unsigned char *buffer, unsigned long long numbytes)
     buffer[i] = (unsigned char)i;
 }
 
+void print_to_csv(char *text){
+  FILE* stream = fopen ("datalogger.csv", "w");
+  fprintf(stream, "%s", text);
+}
+
 int main()
 {
 //   int ret_val = KAT_SUCCESS;
